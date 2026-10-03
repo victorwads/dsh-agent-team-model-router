@@ -1,0 +1,8 @@
+This plugin contains MIT-licensed code adapted from deepseek-ai/deepseek-harness and ivbrajkovic/deepseek-harness.
+
+src/vendor/model-selection.js: ivbrajkovic fork commit 30da5c7, packages/subagent/tool-subagent/src/model-selection.ts.
+tests/adapter.mjs and tests/query.mjs: release baseline 639ed01539 test helpers.
+vendor/rc2-team-panel.js: shipped @deepseek-ai/dsh-experimental-client-ui-agent-team 0.2.0-rc.2 browser bundle (MIT); build applies an isolated display-alias projection and supported slot-priority override.
+
+Copyright (c) 2026 DeepSeek. Upstream contributors include Ivan Brajkovic.
+The upstream MIT license and local plugin MIT license are included in LICENSE.

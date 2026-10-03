@@ -1,0 +1,9 @@
+# Original tools are mounted unchanged by the router AFTER its decorators.
+- id: tool-agent-team
+  disabled: true
+- insert:
+    - id: agent-team-model-router
+      name: dsh-agent-team-model-router
+      config:
+        freshProvider: spawn
+        forkProvider: fork
