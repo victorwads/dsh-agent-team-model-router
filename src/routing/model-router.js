@@ -12,12 +12,12 @@ export class ModelRouter {
     const parent = this.ctx.sessions.get(agent.session.header.parentSession);
     const inherited = parent && this.state(parent)?.allowed;
     const settings = this.ctx.get('subagentModelSelection')?.current();
-    const routes = inherited ?? (agent.session.header.origin !== 'subagent' && agent.session.firstLiveSeq === 0 && settings?.enabled ? settings.allowedModels : undefined);
+    const routes = inherited ?? (agent.session.header.origin !== 'subagent' && settings?.enabled ? settings.allowedModels : undefined);
     if (routes?.length) {
       agent.session.append('subagent/model-selection-policy', { allowedModels: routes });
       const policy = { routes }; this.policies.set(agent, policy); return policy;
     }
-    this.policies.set(agent, undefined);
+    // Do not cache absence: Host authorization or a parent policy may become available later.
     return undefined;
   }
   install(agent) {

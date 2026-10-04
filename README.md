@@ -34,7 +34,7 @@ npm test
 npm pack --dry-run
 ~~~
 
-The suite currently contains 27 tests (including display-name host persistence and browser DOM coverage), with the original 21 routing/composition integration tests, including actual Cordis Loader duplicate-component startup and safe rejection of conflicting hot-install; see docs/VERIFICATION.md.
+The suite currently contains 28 tests (including display-name host persistence and browser DOM coverage), with the original 21 routing/composition integration tests, including actual Cordis Loader duplicate-component startup and safe rejection of conflicting hot-install; see docs/VERIFICATION.md.
 
 Source is ordinary ESM JavaScript; build copies it into lib. All DSH integration dependencies are pinned to 0.2.0-rc.2. No compiled core override is shipped.
 
@@ -80,7 +80,7 @@ For deployments configuring that setting through a profile patch, the existing e
         model: YOUR_EXACT_MODEL_ID
 ~~~
 
-Verify the entry ID in your dump before applying this example. The deployment base can be overridden by the stored user setting. Routes are sampled for NEW top-level Sessions and captured in native subagent/model-selection-policy events; children inherit the captured allowlist. Existing Sessions without that opt-in remain disabled. Start a new Session after enabling or changing the policy; restarting an old Session does not silently widen its permissions.
+Verify the entry ID in your dump before applying this example. The deployment base can be overridden by the stored user setting. Routes are captured in native subagent/model-selection-policy events for both new and existing top-level Sessions lacking a policy; children inherit the captured allowlist. No per-session opt-in or age restriction exists. Existing durable policies are preserved.
 
 ## Tools
 
@@ -132,6 +132,14 @@ set_teammate_display_name({ target: "backend", display_name: null })
 Lead-only. Targets come from list_agents, never from the visual alias. Cold members can be renamed without waking them. Session IDs, task ownership, mailbox and stable names are unchanged. Names allow case/spaces/accents; empty/control/bidi-override text is rejected. Display aliases persist in successful native tool receipts and are exposed by the agentTeamDisplayNames projection; absence of the plugin does not make Session logs unreadable.
 
 Rebuild with npm run build, then reload the plugin/profile and refresh the existing Web URL. No automatic HMR update is promised. The client entry must be recognized from the updated package manifest. Do not disable the original Team Panel; the alias-aware panel shadows its registered slot at a different priority. UI rendering is tested with React DOM/jsdom; the user's live Web profile still needs verification after refresh. GitHub publication is experimental; live GUI validation after profile restart remains pending.
+
+## Existing Team Sessions
+
+Session age is not a restriction. The plugin has no per-session opt-in tool, confirmation gate, or configuration switch to block legacy Sessions. When Host subagent-model-selection is enabled, existing root Sessions lacking a policy capture the Host route allowlist automatically on loading or routing access. Teammates inherit their parent's policy. Existing durable route policies remain authoritative; adapter validation and Host route authorization are not bypassed.
+
+Restart the DSH Host after rebuilding/updating the plugin, then resume the SAME existing Session. No new Session, history rewrite or manual log edit is required. A running inference is unchanged; switching affects the next model invocation. Cold teammates still need send_message before switch_teammate_model. This does not raise the Team member limit or guarantee all historic tokens fit a model's context window.
+
+Verified in keyless runtime tests: old persisted Team created with Host selection disabled, restart with Host enabled, same teammate ID, old text retained in actual switched inference. User's large Session has not been directly modified or certified.
 
 ## Exact switching semantics
 

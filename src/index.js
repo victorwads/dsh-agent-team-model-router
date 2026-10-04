@@ -87,7 +87,7 @@ export async function apply(ctx, config = {}) {
       if (args.model !== undefined && args.provider === undefined) throw new Error('model requires provider');
       for (const key of ['provider', 'model']) if (args[key] !== undefined && args[key].length === 0) throw new Error(key + ' must be non-empty');
       const policy = router.policy(exec.agent);
-      if (!policy) return { enabled: false, routes: [], message: 'Model selection is disabled for this Session. Enable Host subagent-model-selection and start a new Session.' };
+      if (!policy) return { enabled: false, routes: [], message: 'Model selection is disabled for this Session. Enable Host subagent-model-selection with a non-empty allowed model list. Session age does not restrict selection; no new Session is required.' };
       const routes = policy.routes.filter(route => (!args.provider || route.provider === args.provider) && (!args.model || route.model === args.model));
       if ((args.provider || args.model) && !routes.length) throw new Error('Requested route is not allowed for this Session');
       const providers = ctx.llm.listProviders();

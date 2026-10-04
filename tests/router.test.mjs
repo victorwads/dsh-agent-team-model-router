@@ -289,6 +289,17 @@ test('Lead names a cold teammate without changing tasks and teammate cannot rena
  assert.deepEqual(ctx.agentTeams.listTasks(lead),before);assert.equal(ctx.agentTeams.listMembers(lead)[1].name,'backend');
  await assert.rejects(call(ctx,lead,'set_teammate_display_name',{target:'missing',display_name:'Unknown'}),/not found/);
 });
+test('old Team without policy is authorized by Host without opt-in or age restriction',async t=>{
+ const first=await setup(t,[textResponse('legacy decision')],{enabled:false});
+ const started=await spawn(first.ctx,first.lead);await until(()=>first.adapter.requests.length===1&&!first.ctx.agents.get(started.member.id));
+ await first.ctx.sessions.flush(first.lead.session);await first.ctx.fiber.dispose();
+ const second=await setup(t,[toolCallResponse('legacy-switch','switch_model',{provider:'two',model:'B'}),textResponse('legacy preserved')],{root:first.storageRoot,resume:true,enabled:true});
+ assert.equal((await call(second.ctx,second.lead,'list_models',{})).enabled,true);
+ await second.ctx.agentTeams.sendMessage(second.lead,{target:'backend',content:[{type:'text',text:'Continue legacy decision'}],signal});
+ await until(()=>second.adapter.requests.length===2&&!second.ctx.agents.get(started.member.id));
+ assert.equal(second.adapter.requests[1].model,'B');assert.ok(JSON.stringify(second.adapter.requests[1]).includes('legacy decision'));
+ assert.equal(second.ctx.agentTeams.listMembers(second.lead)[1].id,started.member.id);
+});
 test('invalid selection is rejected before creating a roster member', async t => {
  const {ctx,lead,adapter}=await setup(t,[]);
  await assert.rejects(spawn(ctx,lead,{provider:'two',model:'nonexistent'}),/not allowed/);
