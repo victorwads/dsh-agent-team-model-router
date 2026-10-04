@@ -300,6 +300,23 @@ test('old Team without policy is authorized by Host without opt-in or age restri
  assert.equal(second.adapter.requests[1].model,'B');assert.ok(JSON.stringify(second.adapter.requests[1]).includes('legacy decision'));
  assert.equal(second.ctx.agentTeams.listMembers(second.lead)[1].id,started.member.id);
 });
+test('compact_teammate delegates exact native target/signal and preserves identity, tasks and route',async t=>{
+ const {ctx,lead,adapter}=await setup(t,['hang']);const started=await spawn(ctx,lead);await until(()=>adapter.requests.length===1);
+ const live=ctx.agents.get(started.member.id);const before=ctx.agentTeams.listMembers(lead);
+ await assert.rejects(call(ctx,live,'compact_teammate',{target:'backend'}),/Only the Team Lead/);
+ await assert.rejects(call(ctx,lead,'compact_teammate',{target:'lead'}),/Teammate not found/);
+ await assert.rejects(call(ctx,lead,'compact_teammate',{target:'backend'}),/unavailable/);
+ let received;ctx.provide('compaction',{compactNow:async (agent,requestSignal)=>{received={agent,requestSignal};return {summarySeq:123,shadowedSeqs:[1,2],shadowedTokenCount:500};}});
+ const result=await call(ctx,lead,'compact_teammate',{target:'backend'});
+ assert.equal(received.agent,live);assert.equal(received.requestSignal,signal);assert.equal(result.session,live.id);assert.equal(result.compacted,true);assert.equal(result.history_items,2);
+ assert.deepEqual(ctx.agentTeams.listMembers(lead),before);assert.equal((await call(ctx,live,'get_current_model',{})).next.model,'A');
+ ctx.get('compaction').compactNow=async()=>null;assert.equal((await call(ctx,lead,'compact_teammate',{target:'backend'})).compacted,false);
+ ctx.get('compaction').compactNow=async agent=>agent.runMaintenance(async()=>null);
+ await assert.rejects(call(ctx,lead,'compact_teammate',{target:'backend'}));
+ const controller=new AbortController();controller.abort();
+ await assert.rejects(ctx.tools.get('compact_teammate',lead).execute({target:'backend'},{agent:lead,signal:controller.signal}));
+ live.cancel({kind:'user'});await until(()=>!ctx.agents.get(live.id));await assert.rejects(call(ctx,lead,'compact_teammate',{target:'backend'}),/cold/);
+});
 test('invalid selection is rejected before creating a roster member', async t => {
  const {ctx,lead,adapter}=await setup(t,[]);
  await assert.rejects(spawn(ctx,lead,{provider:'two',model:'nonexistent'}),/not allowed/);

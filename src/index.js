@@ -72,6 +72,36 @@ export async function apply(ctx, config = {}) {
         return { target: target.name, session: target.id, display_name: displayName, changed: previous !== displayName, aliasOperation: { memberId: target.id, value: args.display_name === null ? null : displayName }, displayNames: { version: 1, teamId: exec.agent.id, names } };
       },
     })));
+    disposers.push(agent.ctx.tools.register(defineTool({
+      name: 'compact_teammate',
+      isConcurrencySafe: () => false,
+      description: 'Lead only: compact a loaded idle teammate using native DSH compaction. Summarizes older context, which may lose detail. Does not interrupt, wake, recreate or change the teammate model. Busy or cold members must finish/be loaded first.',
+      parameters: { target: { type: 'string', required: true, description: 'Stable teammate target from list_agents, not its display alias. Lead/self compaction is not supported.' } },
+      output: jsonOutput({ type: 'object', additionalProperties: false, properties: {
+        target: { type: 'string', required: true }, session: { type: 'string', required: true },
+        compacted: { type: 'boolean', required: true }, summary_seq: { type: 'number' },
+        history_items: { type: 'number', required: true }, shadowed_tokens: { type: 'number', required: true },
+        message: { type: 'string', required: true },
+      } }),
+      async execute(args, exec) {
+        if (ctx.agentTeams.tryMembership(exec.agent)?.role !== 'lead') throw new Error('Only the Team Lead can compact another teammate');
+        const member = ctx.agentTeams.listMembers(exec.agent).find(row => row.name === args.target && row.role === 'teammate');
+        if (!member) throw new Error('Teammate not found; use its stable target from list_agents');
+        const target = ctx.agents.get(member.id);
+        if (!target) throw new Error('Teammate is cold/unloaded. This version only compacts loaded idle teammates; it does not wake or recreate them.');
+        const compaction = ctx.get('compaction');
+        if (typeof compaction?.compactNow !== 'function') throw new Error('Native DSH compaction service is unavailable; enable a compaction backend in the Host.');
+        exec.signal.throwIfAborted();
+        // The native service owns idle maintenance, transaction locking, summary and persistence.
+        // Never force compactRegion or manipulate tool-pairing/history ourselves.
+        const result = await compaction.compactNow(target, exec.signal);
+        return { target: member.name, session: member.id, compacted: result !== null,
+          ...(result === null ? {} : { summary_seq: result.summarySeq }),
+          history_items: result?.shadowedSeqs.length ?? 0, shadowed_tokens: result?.shadowedTokenCount ?? 0,
+          message: result === null ? 'No safe useful history to compact.' : 'Older active context replaced by a native summary. Session identity and Team membership unchanged; summary can lose detail.',
+        };
+      },
+    })));
     register('get_current_model', 'Read this exact Agent route from its actual request header, with pending/next route.', {}, async (_args, exec) => router.info(exec.agent));
     register('switch_model', 'Teammate only: schedule an authorized route for the next model invocation; never interrupt an executing inference or create a new session.', { ...routeFields, provider: { ...routeFields.provider, required: true }, model: { ...routeFields.model, required: true } }, (args, exec) => router.switch(exec.agent, args, exec.signal));
     register('switch_teammate_model', 'Lead only: change a live teammate route for its next model invocation. Does not wake or recreate it. Cold teammates must first be resumed with send_message.', { teammate: { type: 'string', required: true }, ...routeFields, provider: { ...routeFields.provider, required: true }, model: { ...routeFields.model, required: true } }, async (args, exec) => {

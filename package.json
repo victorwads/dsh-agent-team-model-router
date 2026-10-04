@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-team-model-router",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Explicit next-invocation Agent Teams model routing for DSH 0.2.0-rc.2",
   "type": "module",
   "main": "lib/index.js",

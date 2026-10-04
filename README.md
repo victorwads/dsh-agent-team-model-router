@@ -34,7 +34,7 @@ npm test
 npm pack --dry-run
 ~~~
 
-The suite currently contains 28 tests (including display-name host persistence and browser DOM coverage), with the original 21 routing/composition integration tests, including actual Cordis Loader duplicate-component startup and safe rejection of conflicting hot-install; see docs/VERIFICATION.md.
+The suite currently contains 29 tests (including display-name host persistence and browser DOM coverage), with the original 21 routing/composition integration tests, including actual Cordis Loader duplicate-component startup and safe rejection of conflicting hot-install; see docs/VERIFICATION.md.
 
 Source is ordinary ESM JavaScript; build copies it into lib. All DSH integration dependencies are pinned to 0.2.0-rc.2. No compiled core override is shipped.
 
@@ -140,6 +140,18 @@ Session age is not a restriction. The plugin has no per-session opt-in tool, con
 Restart the DSH Host after rebuilding/updating the plugin, then resume the SAME existing Session. No new Session, history rewrite or manual log edit is required. A running inference is unchanged; switching affects the next model invocation. Cold teammates still need send_message before switch_teammate_model. This does not raise the Team member limit or guarantee all historic tokens fit a model's context window.
 
 Verified in keyless runtime tests: old persisted Team created with Host selection disabled, restart with Host enabled, same teammate ID, old text retained in actual switched inference. User's large Session has not been directly modified or certified.
+
+## Compact an idle teammate (0.2.0)
+
+~~~ts
+compact_teammate({ target: "backend" })
+~~~
+
+Lead-only, stable teammate target. Delegates to the Host's native compaction.compactNow, the same seam used by /compact. Requires a configured compaction backend and a LOADED IDLE teammate. The native backend owns idle maintenance, balanced history selection, summary generation, transaction locking and persistence. The tool returns compacted, summary_seq, history_items and shadowed_tokens, or a no-op when no safe useful history exists. Backend errors propagate; after a persistence/commit error inspect the Session before retrying.
+
+Does not interrupt an active inference, wake a cold member, recreate a Session, change model or force a history range. Summary generation can use LLM tokens and is lossy: older active context is replaced with a summary, not guaranteed verbatim retention. There is no self-compaction scheduling in this version. Idle in list_agents is not sufficient: completed continuable members may be unloaded and will be rejected. We do not promise compaction immediately after every task; cold-member maintenance requires a separate lifecycle feature.
+
+Tests cover tool/schema registration, Lead authorization, exact member/signal delegation, unavailable backend, no-op/success reporting, cancellation, the real Agent runMaintenance busy guard and cold-member refusal. The compaction service is stubbed for result tests: full native summary/persistence and live provider execution are not verified here. No live user teammate was compacted.
 
 ## Exact switching semantics
 
