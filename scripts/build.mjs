@@ -10,6 +10,8 @@ client = client.replace(needle,   'const baseTeam = useSessions((state) => state
   'const aliases = useSessions((state) => state.projectionsBySession[leadSessionId]?.values.agentTeamDisplayNames);\n' +
   'const team = baseTeam === undefined ? undefined : { ...baseTeam, members: baseTeam.members.map(member => ({ ...member, name: aliases?.[member.id] ?? member.name })) };');
 client = client.replace('order: -20,', 'order: -20, priority: -10,');
+if (!client.includes('const NS = "agent-team";')) throw new Error('Incompatible rc.2 locale namespace');
+client = client.replace('const NS = "agent-team";', 'const NS = "agent-team-model-router";');
 client = client.split('\n').filter(line => !line.startsWith('//# sourceMappingURL=')).join('\n');
 await writeFile(new URL('../lib/client.js', import.meta.url), '// rc.2 upstream Team panel (MIT), isolated alias-aware slot override. See NOTICE.\n' + client);
 console.log('Built ESM host plugin and alias-aware rc.2 browser panel');

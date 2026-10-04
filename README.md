@@ -4,6 +4,10 @@
 
 Local Cordis/DSH plugin for **DSH 0.2.0-rc.2 only**. Extends upstream Agent Teams with explicit provider/model selection and next-inference routing. It does not fork the Team service, edit installed DSH files, edit session files, or recreate teammates to switch models.
 
+## Web boot fix in 0.1.3
+
+0.1.2 reused the original panel locale namespace `agent-team`, so enabling both browser entries could fail the entire Web boot. 0.1.3 isolates the router locale namespace as `agent-team-model-router`. The failure was reproduced with the plugin ACTIVE at the existing Web URL; rebuilding the linked client and refreshing restored the GUI with the corrected router asset loaded and no console errors. A regression now rejects duplicate original locale registration. This fixes that specific browser boot failure; the separate previously reported Host inactive-context issue is not claimed resolved.
+
 ## Safety fix in 0.1.1
 
 **Do not install 0.1.0.** It could block Session creation when the user's last profile patch re-enabled tool-agent-team. That loaded the original tools beside the router's child tools and registered team:policy twice. This was reproduced from the reported stack trace and fixed with shared, reference-counted per-Agent policy/tool registrations. The safe hot-install guard rejects a conflicting existing live composition before route tools are installed. Tests now include the actual Cordis Loader and component toggles, not only direct plugin mounting.

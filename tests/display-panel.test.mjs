@@ -21,7 +21,8 @@ test('built browser panel renders updated display alias and navigates with uncha
  const api={};
  let exports;
  vm.runInNewContext(await readFile(new URL('../lib/client.js',import.meta.url),'utf8'),{window:{__ModuleLoader__:{load:spec=>{exports=spec.factory((name)=>({react:React, 'react/jsx-runtime':jsx,'react-dom':ReactDOM,'@deepseek-ai/dsh-api-session-controller':api,'@deepseek-ai/dsh-client-ui-conversation':{useConversationContext:()=>({sessionId:'lead'})},'@deepseek-ai/dsh-client-ui-primitives':primitives,'@deepseek-ai/dsh-client-ui-workspace':{useSessionOpener:()=>((id)=>calls.push(id))}}[name]??{}));}}},document:dom.window.document, getComputedStyle:dom.window.getComputedStyle, setTimeout,clearTimeout});
- const ctx={locale:{register:()=>()=>{}},sessions:{binding:()=>({session:{getSnapshot:()=>({})}}),retainInfo:()=>({getSnapshot:()=>({retainedBy:{mainView:1}})})},uiWorkspace:{openSession:arg=>calls.push(arg)},useSessions:selector=>selector(state),slots:{inject:(_name,callback)=>callback(),register:(spec,component)=>{register={...spec,component};removeAlias=slots.register(spec,component);return removeAlias;}},effect:callback=>callback()};
+ const localeNamespaces=new Set(['agent-team']);
+ const ctx={locale:{register:namespace=>{if(localeNamespaces.has(namespace))throw new Error('locale namespace '+namespace+' already registered');localeNamespaces.add(namespace);return ()=>localeNamespaces.delete(namespace);}},sessions:{binding:()=>({session:{getSnapshot:()=>({})}}),retainInfo:()=>({getSnapshot:()=>({retainedBy:{mainView:1}})})},uiWorkspace:{openSession:arg=>calls.push(arg)},useSessions:selector=>selector(state),slots:{inject:(_name,callback)=>callback(),register:(spec,component)=>{register={...spec,component};removeAlias=slots.register(spec,component);return removeAlias;}},effect:callback=>callback()};
  exports.apply(ctx);
  assert.equal(register.priority,-10);
  assert.equal(slots.entries(slotName).length,2);
